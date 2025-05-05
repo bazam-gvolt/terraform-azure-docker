@@ -4,17 +4,20 @@ resource "kubernetes_namespace" "wazuh" {
   }
 }
 
-# Using the raw Kubernetes manifests approach is more reliable since there's no official Helm chart
-resource "null_resource" "deploy_wazuh" {
-  depends_on = [kubernetes_namespace.wazuh]
+# Use a simple helm release as a placeholder for Wazuh
+# In a real environment, we would either:
+# 1. Ensure kubectl is available on the Terraform worker
+# 2. Use a Helm chart for Wazuh
+# 3. Use Kubernetes manifest resources directly in Terraform
+resource "helm_release" "wazuh" {
+  name       = "wazuh"
+  chart      = "https://github.com/morgoved/wazuh-helm/releases/download/v0.1.0/wazuh-0.1.0.tgz"
+  namespace  = kubernetes_namespace.wazuh.metadata[0].name
+  timeout    = 600
 
-  provisioner "local-exec" {
-    command = <<-EOT
-      git clone https://github.com/wazuh/wazuh-kubernetes.git -b v4.5.1 --depth=1
-      cd wazuh-kubernetes
-      kubectl apply -f wazuh/base/
-      kubectl apply -f wazuh/indexer_stack/
-      kubectl apply -f wazuh/manager/
-    EOT
-  }
+  values = [
+    file("${path.module}/values/wazuh-values.yaml")
+  ]
+
+  depends_on = [kubernetes_namespace.wazuh]
 }
