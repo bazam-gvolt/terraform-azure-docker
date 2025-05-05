@@ -33,12 +33,6 @@ variable "grafana_admin_password" {
   sensitive   = true
 }
 
-variable "cloudflare_tunnel_token" {
-  description = "Cloudflare tunnel token"
-  type        = string
-  sensitive   = true
-}
-
 variable "cloudflare_tunnel_token_grafana" {
   description = "Cloudflare tunnel token for Grafana"
   type        = string
