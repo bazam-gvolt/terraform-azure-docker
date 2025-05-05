@@ -54,15 +54,16 @@ module "networking" {
 }
 
 module "aks" {
-  source                = "./modules/aks"
-  environment           = var.environment
-  location              = var.location
-  location_prefix       = var.location_prefix
-  resource_group_name   = module.networking.resource_group_name
-  subnet_id             = module.networking.aks_subnet_id
-  tags                  = var.tags
-  api_authorized_ranges = var.api_authorized_ranges
-  enable_monitoring     = var.enable_monitoring
+  source                  = "./modules/aks"
+  environment             = var.environment
+  location                = var.location
+  location_prefix         = var.location_prefix
+  resource_group_name     = module.networking.resource_group_name
+  subnet_id               = module.networking.aks_subnet_id
+  tags                    = var.tags
+  api_authorized_ranges   = var.api_authorized_ranges
+  enable_monitoring       = var.enable_monitoring
+  log_analytics_workspace_id = var.log_analytics_workspace_id
 }
 
 # First ensure the providers are properly initialized using the AKS cluster config

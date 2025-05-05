@@ -25,8 +25,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   network_profile {
     network_plugin     = "azure"
     network_policy     = "calico"
-    dns_service_ip     = "10.0.0.10"
-    service_cidr       = "10.0.0.0/16"
+    dns_service_ip     = "172.16.0.10"  # Changed to avoid CIDR conflict
+    service_cidr       = "172.16.0.0/16"  # Changed to avoid CIDR conflict
     load_balancer_sku  = "standard"
     outbound_type      = "loadBalancer"
   }
@@ -39,19 +39,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
   }
 
   microsoft_defender {
-    log_analytics_workspace_id = azurerm_log_analytics_workspace.aks.id
+    log_analytics_workspace_id = var.log_analytics_workspace_id
   }
 
   tags = var.tags
 }
 
-resource "azurerm_log_analytics_workspace" "aks" {
-  name                = "law-aks-${var.location_prefix}-${var.environment}"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-  tags                = var.tags
-}
+# Remove the azurerm_log_analytics_workspace resource since we're using an existing one
 
 data "azurerm_client_config" "current" {}

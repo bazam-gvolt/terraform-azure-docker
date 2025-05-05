@@ -76,3 +76,8 @@ variable "grafana_subdomain" {
   type        = string
   default     = "grafana"
 }
+
+variable "log_analytics_workspace_id" {
+  description = "ID of the existing Log Analytics workspace for Azure Sentinel"
+  type        = string
+}
