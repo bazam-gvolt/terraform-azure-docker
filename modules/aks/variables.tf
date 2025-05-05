@@ -41,7 +41,7 @@ variable "enable_monitoring" {
 variable "kubernetes_version" {
   description = "Version of Kubernetes"
   type        = string
-  default     = "1.26.3"
+  default     = "1.28.0"  # Updated from 1.26.3 to a more recent version
 }
 
 variable "node_count" {
