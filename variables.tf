@@ -24,6 +24,9 @@ variable "tags" {
     ManagedBy   = "Terraform"
     Security    = "High"
     Compliance  = "Required"
+    Project     = "RedDome-Lab"
+    Owner       = "Instructor"
+    Lab         = "DevSecOps"
   }
 }
 
