@@ -1,9 +1,9 @@
 resource "helm_release" "cloudflared_grafana" {
   name       = "cloudflared-grafana"
-  repository = "https://cloudflare.github.io/helm-charts"
+  repository = "https://charts.kubito.dev"  # Updated repository
   chart      = "cloudflared"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  version    = "0.5.0"
+  version    = "0.8.0"  # Updated version
   timeout    = 600
 
   values = [
@@ -19,10 +19,10 @@ resource "helm_release" "cloudflared_grafana" {
 
 resource "helm_release" "cloudflared_wazuh" {
   name       = "cloudflared-wazuh"
-  repository = "https://cloudflare.github.io/helm-charts"
+  repository = "https://charts.kubito.dev"  # Updated repository
   chart      = "cloudflared"
   namespace  = kubernetes_namespace.monitoring.metadata[0].name
-  version    = "0.5.0"
+  version    = "0.8.0"  # Updated version
   timeout    = 600
 
   values = [
