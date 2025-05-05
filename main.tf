@@ -50,6 +50,8 @@ module "aks" {
   resource_group_name = module.networking.resource_group_name
   subnet_id           = module.networking.aks_subnet_id
   tags                = var.tags
+  api_authorized_ranges = var.api_authorized_ranges
+  enable_monitoring    = var.enable_monitoring
 }
 
 module "wazuh" {
@@ -60,22 +62,10 @@ module "wazuh" {
 module "monitoring" {
   source = "./modules/monitoring"
   depends_on = [module.aks]
+  grafana_admin_password = var.grafana_admin_password
+  cloudflare_tunnel_token_grafana = var.cloudflare_tunnel_token_grafana
+  cloudflare_tunnel_token_wazuh = var.cloudflare_tunnel_token_wazuh
+  domain_name = var.domain_name
+  grafana_subdomain = var.grafana_subdomain
+  wazuh_subdomain = var.wazuh_subdomain
 }
-
-environments/
-├── dev/
-│   ├── main.tf
-│   └── terraform.tfvars
-└── prod/
-    ├── main.tf
-    └── terraform.tfvars
-
-modules/
-├── aks/
-│   └── locals.tf
-├── monitoring/
-│   └── locals.tf
-├── networking/
-│   └── locals.tf
-└── wazuh/
-    └── locals.tf
