@@ -73,36 +73,3 @@ variable "grafana_subdomain" {
   type        = string
   default     = "grafana"
 }
-
-resource "azurerm_kubernetes_cluster" "aks" {
-  network_profile {
-    network_plugin     = "azure"
-    load_balancer_sku  = "standard"
-    network_policy     = "calico"  // Add network policies
-  }
-
-  azure_policy_enabled = true
-  
-  microsoft_defender {
-    enabled = true
-  }
-
-  oms_agent {
-    log_analytics_workspace_id = azurerm_log_analytics_workspace.aks.id
-  }
-
-  api_server_access_profile {
-    authorized_ip_ranges = ["YOUR_IP_RANGE"]  // Restrict API server access
-  }
-}
-
-resource "azurerm_network_security_group" "aks" {
-  name                = "nsg-aks-${var.location_prefix}-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-}
-
-resource "azurerm_subnet_network_security_group_association" "aks" {
-  subnet_id                 = azurerm_subnet.aks.id
-  network_security_group_id = azurerm_network_security_group.aks.id
-}
