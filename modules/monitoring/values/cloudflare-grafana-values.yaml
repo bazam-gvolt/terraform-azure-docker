@@ -1,44 +1,37 @@
-persistence:
+tunnel:
   enabled: true
-  storageClassName: managed-premium
-  size: 10Gi
+  token: "${CLOUDFLARE_TUNNEL_TOKEN_GRAFANA}"
+  protocol: "http2"
+  noTLSVerify: false
+  originServerName: "kubernetes.default.svc.cluster.local"
 
-adminPassword: "${GRAFANA_ADMIN_PASSWORD}"
+ingress:
+  - hostname: "${GRAFANA_SUBDOMAIN}.${DOMAIN_NAME}"
+    service: grafana
+    path: "/"
+    port: 3000
+
+config:
+  http2Origin: true
+  disableChunkedEncoding: false
+  proxySettings:
+    connectTimeout: 30s
+    tlsTimeout: 10s
+    tcpKeepAlive: 30s
+  headers:
+    - key: X-Content-Type-Options
+      value: nosniff
+    - key: X-Frame-Options
+      value: DENY
+    - key: X-XSS-Protection
+      value: "1; mode=block"
+    - key: Strict-Transport-Security
+      value: "max-age=31536000; includeSubDomains"
 
 resources:
   limits:
-    cpu: "500m"
-    memory: "1Gi"
+    cpu: 1
+    memory: 1Gi
   requests:
-    cpu: "200m"
-    memory: "500Mi"
-
-# Improve stability
-replicas: 1
-deploymentStrategy:
-  type: Recreate
-
-datasources:
-  datasources.yaml:
-    apiVersion: 1
-    datasources:
-    - name: Wazuh
-      type: elasticsearch
-      url: http://wazuh-indexer-indexer:9200
-      database: wazuh-*
-      jsonData:
-        timeField: "@timestamp"
-        esVersion: "7.10.2"
-
-dashboardProviders:
-  dashboardproviders.yaml:
-    apiVersion: 1
-    providers:
-    - name: 'default'
-      orgId: 1
-      folder: ''
-      type: file
-      disableDeletion: false
-      editable: true
-      options:
-        path: /var/lib/grafana/dashboards/default
+    cpu: 200m
+    memory: 500Mi
