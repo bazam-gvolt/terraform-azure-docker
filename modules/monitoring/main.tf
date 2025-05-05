@@ -1,82 +1,68 @@
-terraform {
-  backend "remote" {
-    organization = "gvolt"
-    workspaces {
-      name = "terraform-azure-docker"
-    }
-  }
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.9.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.20.0"
+resource "kubernetes_namespace" "monitoring" {
+  metadata {
+    name = "monitoring"
+    labels = {
+      "purpose" = "monitoring"
     }
   }
 }
 
-provider "azurerm" {
-  features {
-    key_vault {
-      purge_soft_delete_on_destroy = false
+resource "helm_release" "grafana" {
+  name       = "grafana"
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "grafana"
+  namespace  = kubernetes_namespace.monitoring.metadata[0].name
+  version    = "6.50.7"
+
+  values = [
+    templatefile("${path.module}/values/grafana-values.yaml", {
+      GRAFANA_ADMIN_PASSWORD = var.grafana_admin_password
+    })
+  ]
+
+  set {
+    name  = "persistence.enabled"
+    value = "true"
+  }
+
+  set {
+    name  = "persistence.size"
+    value = "10Gi"
+  }
+
+  depends_on = [kubernetes_namespace.monitoring]
+}
+
+resource "kubernetes_resource_quota" "student_quota" {
+  metadata {
+    name = "student-quota"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
+  }
+  spec {
+    hard = {
+      "requests.cpu"    = "2"
+      "requests.memory" = "2Gi"
+      "limits.cpu"      = "4"
+      "limits.memory"   = "4Gi"
+      "pods"            = "10"
     }
   }
+
+  depends_on = [kubernetes_namespace.monitoring]
 }
 
-provider "helm" {
-  kubernetes {
-    host                   = module.aks.host
-    client_certificate     = base64decode(module.aks.client_certificate)
-    client_key             = base64decode(module.aks.client_key)
-    cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
+# Create ConfigMap for lab documentation
+resource "kubernetes_config_map" "lab_documentation" {
+  metadata {
+    name      = "lab-guide"
+    namespace = kubernetes_namespace.monitoring.metadata[0].name
   }
-}
 
-provider "kubernetes" {
-  host                   = module.aks.host
-  client_certificate     = base64decode(module.aks.client_certificate)
-  client_key             = base64decode(module.aks.client_key)
-  cluster_ca_certificate = base64decode(module.aks.cluster_ca_certificate)
-}
+  data = {
+    "instructions.md" = "# RedDome Lab - Student Instructions\n\nThis is a placeholder for detailed lab instructions. Replace with actual content."
+    "architecture.md" = "# RedDome Lab - Architecture\n\nThis is a placeholder for architecture documentation. Replace with actual content."
+    "exercises.md"    = "# RedDome Lab - Exercises\n\nThis is a placeholder for lab exercises. Replace with actual content."
+  }
 
-module "networking" {
-  source          = "./modules/networking"
-  environment     = var.environment
-  location        = var.location
-  location_prefix = var.location_prefix
-  tags            = var.tags
-}
-
-module "aks" {
-  source                = "./modules/aks"
-  environment           = var.environment
-  location              = var.location
-  location_prefix       = var.location_prefix
-  resource_group_name   = module.networking.resource_group_name
-  subnet_id             = module.networking.aks_subnet_id
-  tags                  = var.tags
-  api_authorized_ranges = var.api_authorized_ranges
-  enable_monitoring     = var.enable_monitoring
-}
-
-module "wazuh" {
-  source     = "./modules/wazuh"
-  depends_on = [module.aks]
-}
-
-module "monitoring" {
-  source                          = "./modules/monitoring"
-  depends_on                      = [module.aks]
-  grafana_admin_password          = var.grafana_admin_password
-  cloudflare_tunnel_token_grafana = var.cloudflare_tunnel_token_grafana
-  cloudflare_tunnel_token_wazuh   = var.cloudflare_tunnel_token_wazuh
-  domain_name                     = var.domain_name
-  grafana_subdomain               = var.grafana_subdomain
-  wazuh_subdomain                 = var.wazuh_subdomain
+  depends_on = [kubernetes_namespace.monitoring]
 }
