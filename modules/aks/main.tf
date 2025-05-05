@@ -4,7 +4,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = var.resource_group_name
   dns_prefix          = "aks-${var.location_prefix}-${var.environment}"
   kubernetes_version  = var.kubernetes_version
-  sku_tier            = "Free"  # Use Free tier for lowest cost
+  sku_tier            = "Free"
 
   default_node_pool {
     name            = "system"
@@ -25,8 +25,8 @@ resource "azurerm_kubernetes_cluster" "aks" {
   network_profile {
     network_plugin     = "azure"
     network_policy     = "calico"
-    dns_service_ip     = "172.16.0.10"  # Changed to avoid CIDR conflict
-    service_cidr       = "172.16.0.0/16"  # Changed to avoid CIDR conflict
+    dns_service_ip     = "172.16.0.10"
+    service_cidr       = "172.16.0.0/16"
     load_balancer_sku  = "standard"
     outbound_type      = "loadBalancer"
   }
@@ -34,17 +34,14 @@ resource "azurerm_kubernetes_cluster" "aks" {
   azure_policy_enabled = true
   role_based_access_control_enabled = true
 
-  api_server_access_profile {
-    authorized_ip_ranges = var.api_authorized_ranges
-  }
+  # Remove the API server access profile completely
+  # api_server_access_profile {
+  #   authorized_ip_ranges = var.api_authorized_ranges
+  # }
 
   microsoft_defender {
-    log_analytics_workspace_id = var.log_analytics_workspace_id
+    log_analytics_workspace_id = data.azurerm_log_analytics_workspace.sentinel.id
   }
 
   tags = var.tags
 }
-
-# Remove the azurerm_log_analytics_workspace resource since we're using an existing one
-
-data "azurerm_client_config" "current" {}
