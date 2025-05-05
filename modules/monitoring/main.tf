@@ -1,3 +1,5 @@
+# modules/monitoring/main.tf
+
 # Create monitoring namespace
 resource "kubernetes_namespace" "monitoring" {
   metadata {
@@ -8,8 +10,7 @@ resource "kubernetes_namespace" "monitoring" {
   }
 }
 
-# Instead of using Helm for Grafana, we'll use a Kubernetes deployment directly
-# This gives us more control over resource limits for all containers
+# Use emptyDir instead of PVC to avoid timeout issues
 resource "kubernetes_deployment" "grafana" {
   metadata {
     name      = "grafana"
@@ -100,35 +101,13 @@ resource "kubernetes_deployment" "grafana" {
 
         volume {
           name = "grafana-storage"
-          persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.grafana_pvc.metadata[0].name
-          }
+          # Use emptyDir instead of PVC to avoid timeout issues
+          empty_dir {}
         }
       }
     }
   }
 
-  depends_on = [
-    kubernetes_namespace.monitoring,
-    kubernetes_persistent_volume_claim.grafana_pvc
-  ]
-}
-
-# Create persistent volume claim for Grafana
-resource "kubernetes_persistent_volume_claim" "grafana_pvc" {
-  metadata {
-    name      = "grafana-storage"
-    namespace = kubernetes_namespace.monitoring.metadata[0].name
-  }
-  spec {
-    access_modes = ["ReadWriteOnce"]
-    resources {
-      requests = {
-        storage = "10Gi"
-      }
-    }
-    storage_class_name = "managed-premium"
-  }
   depends_on = [kubernetes_namespace.monitoring]
 }
 
@@ -213,26 +192,43 @@ resource "kubernetes_config_map" "lab_documentation" {
   depends_on = [kubernetes_namespace.monitoring]
 }
 
-# For Wazuh deployment, we need to create the resources directly
-resource "kubernetes_namespace" "wazuh" {
-  metadata {
-    name = "wazuh"
-  }
-}
-
-# We'll create the Wazuh resources directly using kubectl apply
-resource "null_resource" "deploy_wazuh" {
+# We'll use null_resource to run kubectl commands to deploy Wazuh
+# Don't create another kubernetes_namespace since it already exists
+resource "null_resource" "deploy_wazuh_from_monitoring" {
   provisioner "local-exec" {
     command = <<-EOT
-      mkdir -p ${path.module}/wazuh-temp
-      cd ${path.module}/wazuh-temp
+      #!/bin/bash
+      echo "Preparing to deploy Wazuh..."
+      # Check if wazuh namespace exists
+      if kubectl get namespace wazuh > /dev/null 2>&1; then
+        echo "Wazuh namespace already exists, continuing with deployment"
+      else
+        echo "Creating wazuh namespace"
+        kubectl create namespace wazuh
+      fi
+      
+      # Create a temporary directory for Wazuh manifests
+      TEMP_DIR=$(mktemp -d)
+      cd $TEMP_DIR
+      
+      # Clone the official Wazuh Kubernetes repository
+      echo "Cloning Wazuh Kubernetes repository..."
       git clone https://github.com/wazuh/wazuh-kubernetes.git -b v4.5.1 --depth=1
       cd wazuh-kubernetes
+      
+      # Apply the Kubernetes manifests
+      echo "Applying Wazuh base manifests..."
       kubectl apply -f wazuh/base/
+      
+      echo "Applying Wazuh indexer stack manifests..."
       kubectl apply -f wazuh/indexer_stack/
+      
+      echo "Applying Wazuh manager manifests..."
       kubectl apply -f wazuh/manager/
+      
+      echo "Wazuh deployment completed"
     EOT
   }
 
-  depends_on = [kubernetes_namespace.wazuh]
+  depends_on = [kubernetes_namespace.monitoring]
 }
