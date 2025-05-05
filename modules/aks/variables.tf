@@ -41,7 +41,7 @@ variable "enable_monitoring" {
 variable "kubernetes_version" {
   description = "Version of Kubernetes"
   type        = string
-  default     = "1.30.8"  # Updated to a generally available version that should work with Free tier
+  default     = "1.29.0"  # Try this generally available version
 }
 
 variable "node_count" {

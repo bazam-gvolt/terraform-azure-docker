@@ -4,7 +4,7 @@ resource "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = var.resource_group_name
   dns_prefix          = "aks-${var.location_prefix}-${var.environment}"
   kubernetes_version  = var.kubernetes_version
-  tier                = "Free"  # Use Free tier for lowest cost
+  sku_tier            = "Free"  # Use Free tier for lowest cost
 
   default_node_pool {
     name            = "system"
